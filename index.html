@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b100d"><title>College Football Scoreboard</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#f5f7f5;background:#0b100d}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#0b100d;color:#f5f7f5}.ticker-wrap{position:sticky;top:0;z-index:50;display:none;overflow:hidden;background:#0b100d;border-bottom:1px solid #26332b;box-shadow:0 5px 18px #0008;height:38px}.ticker-wrap.show{display:block}.ticker-track{display:flex;width:max-content;min-width:100%;align-items:center;height:38px;white-space:nowrap;animation:ticker-scroll var(--ticker-duration,30s) linear infinite}.ticker-set{display:flex;align-items:center;flex-shrink:0}.ticker-item{display:inline-flex;align-items:center;gap:7px;padding:0 20px;font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;color:#f6f7f6;border-right:1px solid #2a352e}.ticker-live{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#ffb2a0;font-size:10px;font-weight:900;letter-spacing:.08em}.ticker-detail{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#9faaa3;font-size:11px;font-weight:650}.ticker-gap{display:inline-block;width:90px;flex:0 0 90px}@keyframes ticker-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}header{background:linear-gradient(125deg,#151c17,#0d120f);padding:27px 18px;border-bottom:2px solid #d9af55}.wrap{max-width:1020px;margin:auto}h1{font-size:clamp(25px,5vw,40px);margin:0}header p{color:#b8c1bb;margin:8px 0 0}.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:22px 0}button,select{background:#18201b;color:white;border:1px solid #39463e;border-radius:10px;padding:12px 14px;font:inherit;cursor:pointer}button:disabled{opacity:.4;cursor:default}button:hover:not(:disabled){background:#232d26}.controls strong{font-size:18px;margin-right:auto}.conference-select{min-width:155px}.status{color:#aeb8b1;font-size:14px;min-height:0;margin-bottom:12px}.status:empty{display:none}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:16px}.card{background:linear-gradient(150deg,#171d19,#0e1310);border:1px solid #303a33;border-radius:17px;overflow:hidden;box-shadow:0 8px 24px #0006}.card-top{display:flex;justify-content:space-between;gap:10px;padding:13px 17px;background:#ffffff06;font-size:12px;color:#c8cfca}.live{color:#ffb29f;font-weight:800}.teams{padding:14px 17px 16px}.team{display:flex;align-items:center;gap:13px;padding:14px 13px;border-left:7px solid var(--team-color,#52657d);border-right:2px solid var(--team-color,#52657d);border-radius:11px;background:linear-gradient(90deg,var(--team-tint,#26384f),#ffffff08 68%,var(--team-tint,#26384f));box-shadow:inset 0 1px 0 #ffffff08}.logo{width:52px;height:52px;object-fit:contain;flex-shrink:0;padding:3px;border-radius:9px;background:#f2f4f0e8;box-shadow:0 1px 0 #fff7,0 2px 7px #0005}.placeholder{width:52px;height:52px;border-radius:50%;background:#222a25;display:grid;place-items:center;font-weight:bold;flex-shrink:0}.at-row{text-align:left;color:#c8cfca;font-size:15px;font-weight:400;line-height:1;padding:8px 0 8px 11px}.name{flex:1;min-width:0;font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:1.24}.school{font-weight:700}.nickname{font-weight:400;margin-left:4px}.record{display:block;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:12px;color:#acb6af;font-weight:400;margin-top:4px}.score{font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:700;min-width:40px;text-align:right}.rivalry{padding:8px 15px;background:#d9af5518;border-top:1px solid #d9af5544;border-bottom:1px solid #d9af5544;color:#efd487;font-size:12px;font-weight:800;letter-spacing:.04em;text-align:center}.rivalry .label{display:none}.day-section{margin:26px 0 34px}.day-heading{display:flex;align-items:center;gap:12px;margin:0 0 13px;color:#d8ded9;font-size:15px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.day-heading::after{content:'';height:1px;background:#3b4740;flex:1;opacity:.9}.fav-btn{appearance:none;background:transparent;border:0;padding:4px 5px;margin:-4px 1px -4px -3px;color:#7f8d84;font-size:21px;line-height:1;cursor:pointer}.fav-btn:hover{background:transparent;color:#efd487}.fav-btn.active{color:#efd487}.favorite-game{outline:1px solid #d9af5555}.note{margin:25px 0;color:#9ca79f;font-size:13px;line-height:1.5}.empty{padding:24px;border:1px dashed #465149;border-radius:12px;color:#c3cac5}.bottom-summary{margin:30px 0 0;padding-top:18px;border-top:1px solid #2f3a33;color:#9ca79f;font-size:13px}footer{padding:12px 0 40px;color:#87938a;font-size:12px}.top-btn{position:fixed;right:20px;bottom:20px;width:48px;height:48px;padding:0;border-radius:50%;display:grid;place-items:center;font-family:Arial,sans-serif;font-size:24px;font-weight:400;line-height:1;background:#18201b;border:1px solid #46534a;box-shadow:0 8px 22px #0008;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s ease,transform .2s ease,background .2s ease;z-index:60}.top-btn.show{opacity:1;pointer-events:auto;transform:translateY(0)}.top-btn:hover{background:#232d26}@media(max-width:600px){.controls strong{width:100%;margin-right:0}.controls button,.controls select{flex:1 1 auto}.conference-select{min-width:0}.grid{grid-template-columns:1fr}.team{padding:13px 11px}.logo,.placeholder{width:50px;height:50px}.name{font-size:17px}.score{font-size:28px}.top-btn{right:14px;bottom:14px;width:46px;height:46px}.ticker-item{padding:0 15px;font-size:13px}}@media(prefers-reduced-motion:reduce){.ticker-track{animation:none;transform:none}.ticker-wrap{overflow-x:auto}.top-btn{transition:none}}
+</style></head><body><div id="liveTicker" class="ticker-wrap" aria-label="Live scores"><div id="tickerTrack" class="ticker-track"></div></div><header><div class="wrap"><h1>🏈 College Football Scoreboard</h1><p>Every FBS matchup. One place. All times Central. <span id="updated"></span></p></div></header><main class="wrap" style="padding:0 16px"><div class="controls"><strong id="heading">Week 7</strong><select id="weekSelect" aria-label="Week"><option value="1">Week 1</option><option value="2">Week 2</option><option value="3">Week 3</option><option value="4">Week 4</option><option value="5">Week 5</option><option value="6">Week 6</option><option value="7">Week 7</option><option value="8">Week 8</option><option value="9">Week 9</option><option value="10">Week 10</option><option value="11">Week 11</option><option value="12">Week 12</option><option value="13">Week 13</option><option value="14">Week 14</option><option value="15">Week 15</option><option value="16">Week 16</option></select><select id="season" aria-label="Season"><option value="2026">2026</option><option value="2025">2025</option></select><select id="conference" class="conference-select" aria-label="Conference"><option value="80">All FBS</option><option value="1">ACC</option><option value="151">American</option><option value="4">Big 12</option><option value="5">Big Ten</option><option value="12">C-USA</option><option value="18">FBS Independents</option><option value="15">MAC</option><option value="17">Mountain West</option><option value="9">Pac-12</option><option value="8">SEC</option><option value="37">Sun Belt</option></select><button id="refresh">↻ Refresh</button></div><div id="status" class="status" role="status"></div><div id="games"></div><div id="summary" class="bottom-summary"></div><p class="note">Data is requested from an unofficial ESPN endpoint. Coverage and update frequency are not guaranteed. Team marks belong to their respective owners.</p><footer>Built for personal use · Version 0.8</footer></main><button id="topBtn" class="top-btn" aria-label="Jump to top" title="Jump to top">^</button>
+<script>
+'use strict';
+const BASE='https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard';
+const params=new URLSearchParams(location.search);
+let season=Number(params.get('year'))||2026, week=Math.min(16,Math.max(1,Number(params.get('week'))||7));
+let conference=String(params.get('conference')||'80');
+const $=id=>document.getElementById(id);
+$('season').value=String(season);
+$('weekSelect').value=String(week);
+$('conference').value=conference;
+
+const CONFERENCE_NAMES={
+  '1':'ACC','151':'American','4':'Big 12','5':'Big Ten','12':'C-USA','18':'Independent',
+  '15':'MAC','17':'Mountain West','9':'Pac-12','8':'SEC','37':'Sun Belt'
+};
+const FAVORITES_KEY='cfb-scoreboard-favorites-v1';
+let favorites;
+try{
+  const saved=JSON.parse(localStorage.getItem(FAVORITES_KEY));
+  favorites=Array.isArray(saved)?saved:['LSU'];
+}catch{favorites=['LSU'];}
+function saveFavorites(){localStorage.setItem(FAVORITES_KEY,JSON.stringify(favorites));}
+function isFavorite(name){return favorites.includes(name);}
+function toggleFavorite(name){
+  favorites=isFavorite(name)?favorites.filter(x=>x!==name):[...favorites,name];
+  saveFavorites();
+  if(window.lastEvents)render(window.lastEvents);
+}
+
+
+function time(date){
+  return new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'}).format(new Date(date));
+}
+function dayLabel(date){
+  return new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',weekday:'long',month:'long',day:'numeric'}).format(new Date(date));
+}
+function weekdayCentral(date){
+  return new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',weekday:'long'}).format(new Date(date));
+}
+function ymdCentral(date){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(date));
+  const get=t=>parts.find(p=>p.type===t)?.value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+function addDaysYMD(ymd,days){
+  const [y,m,d]=ymd.split('-').map(Number);
+  const dt=new Date(Date.UTC(y,m-1,d));
+  dt.setUTCDate(dt.getUTCDate()+days);
+  return dt.toISOString().slice(0,10);
+}
+function compactYMD(ymd){return ymd.replaceAll('-','');}
+function escapeHTML(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// A local rivalry lookup keeps the app fast and independent of another website at runtime.
+// Each key is alphabetical so home/away order does not matter.
+const RIVALRIES={
+  'air force|colorado state':'Ram–Falcon Trophy',
+  'air force|hawaii':'Kuter Trophy',
+  'akron|kent state':'Wagon Wheel',
+  'alabama|auburn':'Iron Bowl',
+  'alabama|mississippi state':'Battle for Highway 82',
+  'alabama|tennessee':'Third Saturday in October',
+  'appalachian state|georgia southern':'Deeper than Hate',
+  'appalachian state|marshall':'The Old Mountain Feud',
+  'arizona|arizona state':'Duel in the Desert',
+  'arkansas|lsu':'Battle for the Golden Boot',
+  'arkansas|missouri':'Battle Line Rivalry',
+  'arkansas|texas a&m':'Southwest Classic',
+  'auburn|georgia':"Deep South's Oldest Rivalry",
+  'auburn|lsu':'Tiger Bowl',
+  'baylor|tcu':'Bluebonnet Battle',
+  'boise state|fresno state':'Milk Can',
+  'bowling green|toledo':'Battle of I-75',
+  'byu|utah':'Holy War',
+  'cincinnati|louisville':'Keg of Nails',
+  'cincinnati|miami (oh)':'Battle for the Victory Bell',
+  'clemson|nc state':'Textile Bowl',
+  'clemson|south carolina':'Palmetto Bowl',
+  'colorado|colorado state':'Rocky Mountain Showdown',
+  'colorado state|wyoming':'Border War',
+  'duke|north carolina':'Victory Bell',
+  'florida atlantic|fiu':'Shula Bowl',
+  'florida state|miami (fl)':'Florida Cup',
+  'florida|florida state':'Florida Cup',
+  'florida|georgia':'Okefenokee Oar',
+  'florida|miami (fl)':'Florida Cup',
+  'fresno state|hawaii':'Golden Screwdriver',
+  'fresno state|san diego state':'Oil Can',
+  'georgia southern|georgia state':'Modern Day Hate',
+  'georgia|georgia tech':'Clean, Old-Fashioned Hate',
+  'hawaii|wyoming':'Paniolo Trophy',
+  'houston|rice':'Bayou Bucket',
+  'illinois|northwestern':'Land of Lincoln Trophy',
+  'illinois|ohio state':'Illibuck',
+  'illinois|purdue':'Purdue Cannon',
+  'indiana|michigan state':'Old Brass Spittoon',
+  'indiana|purdue':'Old Oaken Bucket',
+  'iowa state|kansas state':'Farmageddon',
+  'iowa|iowa state':'Cy-Hawk Trophy',
+  'iowa|minnesota':'Floyd of Rosedale',
+  'iowa|nebraska':'Heroes Trophy',
+  'iowa|wisconsin':'Heartland Trophy',
+  'kansas|kansas state':'Sunflower Showdown',
+  'kansas|missouri':'Border War',
+  'kentucky|louisville':"Governor's Cup",
+  'lsu|ole miss':'Magnolia Bowl',
+  'maryland|navy':'Crab Bowl Classic',
+  'memphis|uab':'Battle for the Bones',
+  'michigan state|notre dame':'Megaphone Trophy',
+  'michigan|michigan state':'Paul Bunyan Trophy',
+  'michigan|minnesota':'Little Brown Jug',
+  'michigan|ohio state':'The Game',
+  'minnesota|nebraska':'$5 Bits of Broken Chair Trophy',
+  'minnesota|penn state':"Governor's Victory Bell",
+  'minnesota|wisconsin':"Paul Bunyan's Axe",
+  'mississippi state|ole miss':'Egg Bowl',
+  'navy|notre dame':'Rip Miller Trophy',
+  'nebraska|wisconsin':'Freedom Trophy',
+  'new mexico state|utep':'Battle of I-10',
+  'new mexico|new mexico state':'Rio Grande Rivalry',
+  'north carolina|virginia':"South's Oldest Rivalry",
+  'notre dame|purdue':'Shillelagh Trophy',
+  'notre dame|stanford':'Legends Trophy',
+  'notre dame|usc':'Jeweled Shillelagh',
+  'ohio|miami (oh)':'Battle of the Bricks',
+  'oklahoma|texas':'Red River Rivalry',
+  'oregon state|oregon':'Platypus Trophy',
+  'pittsburgh|west virginia':'Backyard Brawl',
+  'san jose state|fresno state':'Battle for the Valley',
+  'smu|tcu':'Battle for the Iron Skillet',
+  'south alabama|troy':'Battle for the Belt',
+  'southern miss|tulane':'Battle for the Bell',
+  'texas a&m|texas':'Lone Star Showdown',
+  'texas state|utsa':'I-35 Rivalry',
+  'texas tech|tcu':'Saddle Trophy',
+  'texas tech|texas':"Chancellor's Spurs",
+  'ucla|usc':'Victory Bell',
+  'ucf|south florida':'War on I-4',
+  'virginia tech|virginia':'Commonwealth Cup',
+  'virginia tech|west virginia':'Black Diamond Trophy',
+  'washington state|washington':'Apple Cup',
+  'wyoming|utah state':"Bridger's Battle"
+};
+const NICKNAME_OVERRIDES={'LSU':'Fighting Tigers'};
+function normalizeSchool(name){return String(name||'').trim().toLowerCase().replace(/ university$/,'');}
+function schoolName(team){return team.location||team.shortDisplayName||team.abbreviation||'Unknown team';}
+function nickname(team){return NICKNAME_OVERRIDES[schoolName(team)]||team.name||'';}
+function recordSummary(competitor,type){
+  const records=competitor.records||[];
+  const wanted=records.find(r=>String(r.type||'').toLowerCase()===type)||records.find(r=>String(r.name||'').toLowerCase()===type);
+  return wanted?.summary||'';
+}
+function overallRecord(competitor){return recordSummary(competitor,'total')||recordSummary(competitor,'overall')||competitor.records?.[0]?.summary||'';}
+function conferenceRecord(competitor){
+  const records=competitor.records||[];
+  const found=records.find(r=>['vsconf','conference','conf'].includes(String(r.type||'').toLowerCase()))||records.find(r=>/conference|conf/i.test(String(r.name||'')));
+  return found?.summary||'';
+}
+function rivalryName(teams){
+  const names=teams.map(t=>normalizeSchool(schoolName(t.team||{}))).sort();
+  return RIVALRIES[names.join('|')]||'';
+}
+function hexColor(value){
+  let v=String(value||'').replace('#','').trim();
+  if(!/^[0-9a-fA-F]{6}$/.test(v))return '#52657d';
+  return '#'+v.toUpperCase();
+}
+function visibleTeamColor(hex){
+  const h=hexColor(hex);
+  const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
+  const luminance=.2126*r+.7152*g+.0722*b;
+  if(luminance>=72)return h;
+  const target=82,amount=Math.min(.45,(target-luminance)/180);
+  const mix=v=>Math.round(v+(255-v)*amount).toString(16).padStart(2,'0');
+  return '#'+mix(r)+mix(g)+mix(b);
+}
+function hexTint(hex,alpha='38'){return visibleTeamColor(hex)+alpha;}
+function teamConference(competitor){
+  const team=competitor.team||{};
+  const raw=team.conferenceId??competitor.conferenceId??team.conference?.id;
+  const direct=team.conference?.abbreviation||team.conference?.shortName||team.conference?.name;
+  return direct||CONFERENCE_NAMES[String(raw)]||'';
+}
+function orderedTeams(comp){
+  const teams=[...(comp.competitors||[])];
+  teams.sort((a,b)=>{
+    const order={away:0,home:1};
+    return (order[a.homeAway]??2)-(order[b.homeAway]??2);
+  });
+  return teams;
+}
+function teamRow(t,played){
+  const team=t.team||{},logo=team.logo||team.logos?.[0]?.href,rank=Number(t.curatedRank?.current);
+  const school=schoolName(team),nick=nickname(team),overall=overallRecord(t),conf=conferenceRecord(t),league=teamConference(t),record=[overall,conf?`(${conf})`:'',league?`- ${league}`:''].filter(Boolean).join(' ');
+  const image=logo?`<img class="logo" src="${escapeHTML(logo)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`:`<span class="placeholder">🏈</span>`;
+  const color=hexColor(team.color),tint=hexTint(color);
+  const rankText=rank>0&&rank<=25?`#${rank} `:'';
+  const fav=isFavorite(school);
+  return `<div class="team ${t.homeAway==='home'?'home':'away'}" style="--team-color:${color};--team-tint:${tint}"><button class="fav-btn ${fav?'active':''}" data-favorite="${escapeHTML(school)}" aria-label="${fav?'Remove':'Add'} ${escapeHTML(school)} ${fav?'from':'to'} favorites" title="${fav?'Remove from':'Add to'} favorites">${fav?'★':'☆'}</button>${image}<div class="name"><strong class="school">${escapeHTML(rankText+school)}</strong>${nick?`<span class="nickname">${escapeHTML(nick)}</span>`:''}<span class="record">${escapeHTML(record)}</span></div><div class="score">${played?escapeHTML(t.score??'–'):''}</div></div>`;
+}
+function tickerTeamLabel(t){
+  const team=t?.team||{};
+  const rank=Number(t?.curatedRank?.current);
+  const prefix=rank>0&&rank<=25?`#${rank} `:'';
+  return `${prefix}${team.abbreviation||schoolName(team)}`;
+}
+function renderTicker(events){
+  const liveEvents=events.filter(e=>(e.status?.type?.state||'')==='in');
+  const wrap=$('liveTicker'),track=$('tickerTrack');
+  if(!liveEvents.length){wrap.classList.remove('show');track.innerHTML='';return;}
+  const items=liveEvents.map(e=>{
+    const comp=e.competitions?.[0]||{},teams=orderedTeams(comp);
+    const away=teams.find(t=>t.homeAway==='away')||teams[0],home=teams.find(t=>t.homeAway==='home')||teams[1];
+    const detail=e.status?.type?.shortDetail||e.status?.type?.detail||'LIVE';
+    return `<span class="ticker-item"><span class="ticker-live">LIVE</span><span>${escapeHTML(tickerTeamLabel(away))} ${escapeHTML(away?.score??'–')} &nbsp;—&nbsp; ${escapeHTML(tickerTeamLabel(home))} ${escapeHTML(home?.score??'–')}</span><span class="ticker-detail">${escapeHTML(detail)}</span></span>`;
+  }).join('');
+  track.innerHTML=`<div class="ticker-set">${items}<span class="ticker-gap" aria-hidden="true"></span></div><div class="ticker-set" aria-hidden="true">${items}<span class="ticker-gap" aria-hidden="true"></span></div>`;
+  track.style.setProperty('--ticker-duration',`${Math.max(22,liveEvents.length*10)}s`);
+  wrap.classList.add('show');
+}
+function render(events){
+  const root=$('games');root.innerHTML='';
+  window.lastEvents=events;
+  renderTicker(events);
+  if(!events.length){root.innerHTML='<div class="empty">No games returned for this week. Try another week or refresh.</div>';return;}
+
+  const groups=new Map();
+  for(const e of events){
+    const key=ymdCentral(e.date);
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(e);
+  }
+
+  for(const [dateKey,dayEventsRaw] of groups){
+    const dayEvents=[...dayEventsRaw];
+    const isSaturday=weekdayCentral(dayEvents[0].date)==='Saturday';
+    if(isSaturday){
+      dayEvents.sort((a,b)=>{
+        const aTeams=orderedTeams(a.competitions?.[0]||[]).map(t=>schoolName(t.team||{}));
+        const bTeams=orderedTeams(b.competitions?.[0]||[]).map(t=>schoolName(t.team||{}));
+        const af=aTeams.some(isFavorite)?0:1, bf=bTeams.some(isFavorite)?0:1;
+        return af-bf || new Date(a.date)-new Date(b.date);
+      });
+    }
+
+    const section=document.createElement('section');section.className='day-section';
+    const heading=document.createElement('h2');heading.className='day-heading';heading.textContent=dayLabel(dayEvents[0].date);section.append(heading);
+    const grid=document.createElement('div');grid.className='grid';
+
+    for(const e of dayEvents){
+      const comp=e.competitions?.[0]||{},teams=orderedTeams(comp),state=e.status?.type?.state||'pre',played=state!=='pre',live=state==='in';
+      const rawStatus=e.status?.type?.shortDetail||e.status?.type?.description||'Scheduled';
+      const status=state==='pre'?'':rawStatus;
+      const rivalry=rivalryName(teams);
+      const away=teams.find(t=>t.homeAway==='away')||teams[0],home=teams.find(t=>t.homeAway==='home')||teams[1];
+      const favoriteGame=teams.some(t=>isFavorite(schoolName(t.team||{})));
+      const card=document.createElement('article');card.className='card'+(favoriteGame?' favorite-game':'');
+      card.innerHTML=`<div class="card-top"><span>${escapeHTML(time(e.date))} CT</span><span class="${live?'live':''}">${escapeHTML(status)}</span></div>${rivalry?`<div class="rivalry">${escapeHTML(rivalry)}</div>`:''}<div class="teams">${away?teamRow(away,played):''}<div class="at-row" aria-label="at">@</div>${home?teamRow(home,played):''}</div>`;
+      grid.append(card);
+    }
+    section.append(grid);root.append(section);
+  }
+}
+
+async function fetchJSON(url){
+  const response=await fetch(url,{cache:'no-store'});
+  if(!response.ok)throw Error('HTTP '+response.status);
+  return response.json();
+}
+
+async function getWholeWeekEvents(){
+  // Step 1: use ESPN's football week selector to find a Saturday anchor date.
+  const anchorURL=`${BASE}?groups=${encodeURIComponent(conference)}&dates=${season}&seasontype=2&week=${week}&limit=500`;
+  const anchorData=await fetchJSON(anchorURL);
+  const anchorEvents=(anchorData.events||[]).filter(e=>e.date);
+  if(!anchorEvents.length)return [];
+
+  // Pick the most common local date returned by the week request. ESPN's response is
+  // normally centered on the main Saturday slate. Then request Monday-Sunday around it.
+  const counts=new Map();
+  for(const e of anchorEvents){const d=ymdCentral(e.date);counts.set(d,(counts.get(d)||0)+1);}
+  const anchorDate=[...counts.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+  const anchorDow=new Date(anchorDate+'T12:00:00Z').getUTCDay(); // 0=Sun ... 6=Sat
+  const daysBackToMonday=(anchorDow+6)%7;
+  const monday=addDaysYMD(anchorDate,-daysBackToMonday);
+  const sunday=addDaysYMD(monday,6);
+
+  // Step 2: ESPN's scoreboard reliably accepts ONE YYYYMMDD value at a time.
+  // Request each day Monday-Sunday separately, then merge the results.
+  // This avoids the HTTP 400 error caused by the attempted date-range syntax in v0.2.
+  const days=Array.from({length:7},(_,i)=>addDaysYMD(monday,i));
+  const dailyData=await Promise.all(days.map(day=>
+    fetchJSON(`${BASE}?groups=${encodeURIComponent(conference)}&dates=${compactYMD(day)}&limit=500`)
+  ));
+
+  // De-duplicate by ESPN event ID in case the provider ever returns an event twice.
+  const unique=new Map();
+  for(const data of dailyData){
+    for(const e of (data.events||[])){
+      if(e.date&&e.competitions?.[0]?.competitors?.length) unique.set(e.id||`${e.date}-${e.name}`,e);
+    }
+  }
+  return [...unique.values()];
+}
+
+async function load(){
+  const button=$('refresh');button.disabled=true;
+  $('heading').textContent=`Week ${week}`;
+  $('weekSelect').value=String(week);
+  const conferenceLabel=$('conference').selectedOptions[0]?.textContent||'All FBS';
+  $('status').textContent=`Loading ${conferenceLabel} games for the week…`;
+  $('summary').textContent='';
+  try{
+    const events=(await getWholeWeekEvents()).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    render(events);
+    $('status').textContent='';
+    $('summary').textContent=`${events.length} games · ${conferenceLabel} · Sorted by kickoff`;
+    $('updated').textContent=`· Updated ${new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'}).format(new Date())} CT`;
+    if(!events.length)$('summary').textContent+=' · Provider returned no events';
+  }catch(err){
+    $('games').innerHTML='<div class="empty">Could not load scores. The data provider may be unavailable or blocking browser requests. Try Refresh. If this continues, we will add a data proxy.</div>';
+    $('status').textContent='Data request failed: '+err.message;
+    $('summary').textContent='';
+  }finally{
+    button.disabled=false;history.replaceState(null,'',`?year=${season}&week=${week}&conference=${conference}`);
+  }
+}
+$('weekSelect').onchange=e=>{week=Number(e.target.value);load();};
+$('season').onchange=e=>{season=Number(e.target.value);load();};
+$('conference').onchange=e=>{conference=String(e.target.value);load();};
+$('refresh').onclick=load;
+$('games').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-favorite]');
+  if(btn)toggleFavorite(btn.dataset.favorite);
+});
+const topBtn=$('topBtn');
+window.addEventListener('scroll',()=>topBtn.classList.toggle('show',window.scrollY>500),{passive:true});
+topBtn.onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+load();
+setInterval(()=>{if(document.visibilityState==='visible')load();},60000);
+</script></body></html>
