@@ -1,0 +1,11 @@
+{
+  "id": "./",
+  "name": "College Football Scoreboard",
+  "short_name": "CFB Scores",
+  "description": "FBS college football schedules, live scores, favorites and upset alerts.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b100d",
+  "theme_color": "#0b100d"
+}

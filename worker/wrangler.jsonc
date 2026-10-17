@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cfb-scoreboard-notifications",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-17",
+  "vars": {
+    "VAPID_SUBJECT": "https://github.com/"
+  },
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "NOTIFICATION_STATE",
+        "class_name": "NotificationState"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["NotificationState"]
+    }
+  ]
+}
