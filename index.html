@@ -565,11 +565,14 @@ async function syncNotificationPreferences(){
 async function enableNotifications(){
   const btn=$('notifyBtn');btn.disabled=true;setNotifyMessage('Setting up alerts…');
   try{
-    const worker=await ensureWorkerURL();
-    const reg=await getPushRegistration();
+    // iOS requires the permission prompt to be initiated directly by the user gesture.
+    // Do not await service-worker registration, a network call, or a URL prompt first.
+    if(!('Notification' in window)||!('PushManager' in window)||!('serviceWorker' in navigator))throw Error('This iPhone does not support web push in the current browser mode.');
     if(Notification.permission==='denied')throw Error('Notifications are blocked for this app in iPhone Settings.');
     const permission=Notification.permission==='granted'?'granted':await Notification.requestPermission();
-    if(permission!=='granted')throw Error('Notification permission was not granted.');
+    if(permission!=='granted')throw Error('Notification permission was not granted. Check Settings > Notifications, then try again.');
+    const worker=await ensureWorkerURL();
+    const reg=await getPushRegistration();
     let sub=await reg.pushManager.getSubscription();
     if(!sub){
       const r=await fetch(`${worker}/vapid-public-key`,{cache:'no-store'});if(!r.ok)throw Error(`Notification service returned HTTP ${r.status}.`);
