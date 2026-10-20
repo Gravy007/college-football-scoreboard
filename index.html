@@ -444,6 +444,101 @@ function renderSummaryStats(summary,event){
   }).join('');
   return `<div class="stats-title"><span>Live Box Score</span><button class="stats-close" type="button" aria-label="Close live stats">×</button></div><div class="stats-grid">${cols}</div>`;
 }
+
+// Fetch full-season team leaders on demand rather than for every scheduled card.
+const seasonLeaderCache=new Map();
+const CORE_LEADERS='https://sports.core.api.espn.com/v2/sports/football/leagues/college-football';
+function seasonCategory(payload,kind){
+  const data=payload?.leaders||payload||{};
+  const cats=Array.isArray(data.categories)?data.categories:Array.isArray(data)?data:[];
+  const exact=kind+'Leader';
+  return cats.find(c=>String(c.name||'').toLowerCase()===exact.toLowerCase())||
+    cats.find(c=>String(c.name||c.displayName||'').toLowerCase().includes(kind)&&Array.isArray(c.leaders)&&c.leaders.length)||null;
+}
+async function getSeasonLeaders(teamId,year){
+  const key=year+':'+teamId;
+  if(seasonLeaderCache.has(key))return seasonLeaderCache.get(key);
+  const paths=[
+    BASE.replace('/scoreboard','/teams')+'/'+encodeURIComponent(teamId)+'/leaders?season='+encodeURIComponent(year),
+    CORE_LEADERS+'/seasons/'+encodeURIComponent(year)+'/types/2/teams/'+encodeURIComponent(teamId)+'/leaders'
+  ];
+  let result=null;
+  for(const path of paths){
+    try{
+      const response=await fetchJSON(path);
+      if(['passing','rushing','receiving'].some(k=>seasonCategory(response,k)?.leaders?.length)){
+        result=response;
+        break;
+      }
+    }catch(err){console.warn('Season leader source unavailable:',err.message);}
+  }
+  seasonLeaderCache.set(key,result);
+  return result;
+}
+async function leaderName(leader){
+  const athlete=leader?.athlete||leader?.athletes?.[0]||{};
+  const name=athlete.shortName||athlete.displayName||athlete.fullName||athlete.name;
+  if(name)return name;
+  if(typeof athlete.$ref==='string'){
+    try{
+      const url=new URL(athlete.$ref.replace(/^http:/,'https:'));
+      if(url.hostname==='sports.core.api.espn.com'){
+        const resolved=await fetchJSON(url.href);
+        return resolved.shortName||resolved.displayName||resolved.fullName||resolved.name||'Season leader';
+      }
+    }catch{}
+  }
+  return 'Season leader';
+}
+function leaderStat(raw,pattern){
+  const m=String(raw||'').match(pattern);
+  return m?m[1]:'';
+}
+function seasonLeaderLine(leader,kind){
+  const raw=String(leader?.displayValue||leader?.summary||'');
+  const tokens=[];
+  if(kind==='passing'){
+    const fraction=raw.match(/(\d[\d,]*)\s*[-/]\s*(\d[\d,]*)/);
+    if(fraction){
+      const completed=Number(fraction[1].replace(/,/g,'')),attempted=Number(fraction[2].replace(/,/g,''));
+      if(attempted>0)tokens.push((100*completed/attempted).toFixed(1)+'% CMP');
+    }
+    for(const [label,pattern] of [['YDS',/([\d,]+)\s*YDS/i],['TD',/([\d,]+)\s*TD/i],['INT',/([\d,]+)\s*INT/i]]){
+      const value=leaderStat(raw,pattern);if(value)tokens.push(value+' '+label);
+    }
+  }else{
+    const fields=kind==='rushing'?
+      [['CAR',/([\d,]+)\s*(?:CAR|ATT)\b/i],['YDS',/([\d,]+)\s*YDS/i],['AVG',/([\d.]+)\s*(?:AVG|YPC)\b/i],['TD',/([\d,]+)\s*TD/i]]:
+      [['REC',/([\d,]+)\s*REC/i],['YDS',/([\d,]+)\s*YDS/i],['AVG',/([\d.]+)\s*(?:AVG|YPR)\b/i],['TD',/([\d,]+)\s*TD/i]];
+    for(const [label,pattern] of fields){
+      const value=leaderStat(raw,pattern);if(value)tokens.push(value+' '+label);
+    }
+  }
+  return tokens.length?tokens.join(' · '):(raw||'Statistics unavailable');
+}
+async function seasonCategoryHTML(payload,kind){
+  const category=seasonCategory(payload,kind);
+  const leader=category?.leaders?.[0];
+  const heading=kind.charAt(0).toUpperCase()+kind.slice(1);
+  if(!leader)return '<div class="stat-category"><div class="stat-category-title">'+heading+'</div><div class="stat-line">Unavailable</div></div>';
+  const name=await leaderName(leader);
+  return '<div class="stat-category"><div class="stat-category-title">'+heading+'</div><div class="stat-player">'+escapeHTML(name)+'</div><div class="stat-line">'+escapeHTML(seasonLeaderLine(leader,kind))+'</div></div>';
+}
+async function renderPregameStats(event){
+  const teams=orderedTeams(event?.competitions?.[0]||{});
+  const year=Number(event?.season?.year)||season;
+  if(!teams.length)return '<div class="stats-error">No teams found for this matchup.</div>';
+  const cols=await Promise.all(teams.map(async t=>{
+    const team=t.team||{},name=schoolName(team),id=team.id||t.id;
+    if(!id)return '<div class="stat-team"><div class="stat-team-name">'+escapeHTML(name)+'</div><div class="stats-error">Season statistics unavailable.</div></div>';
+    const data=await getSeasonLeaders(id,year);
+    if(!data)return '<div class="stat-team"><div class="stat-team-name">'+escapeHTML(name)+'</div><div class="stats-error">ESPN has not returned season leaders for this team.</div></div>';
+    const categories=await Promise.all(['passing','rushing','receiving'].map(kind=>seasonCategoryHTML(data,kind)));
+    return '<div class="stat-team"><div class="stat-team-name">'+escapeHTML(name)+'</div>'+categories.join('')+'</div>';
+  }));
+  return '<div class="stats-title"><span>'+escapeHTML(year)+' Season Leaders</span><button class="stats-close" type="button" aria-label="Close season leaders">×</button></div><div class="stats-grid">'+cols.join('')+'</div>';
+}
+
 async function toggleGameStats(eventId,card){
   if(!eventId||!card)return;
   const panel=card.querySelector('[data-stats-panel]');
@@ -451,14 +546,20 @@ async function toggleGameStats(eventId,card){
   if(!panel.hidden){panel.hidden=true;return;}
   panel.hidden=false;
   if(panel.dataset.loaded==='1')return;
-  panel.innerHTML='<div class="stats-loading">Loading live box score…</div>';
+  const event=(window.lastEvents||[]).find(e=>String(e.id)===String(eventId));
+  const isSeason=card.dataset.statsMode==='season';
+  panel.innerHTML=isSeason?'<div class="stats-loading">Loading season leaders…</div>':'<div class="stats-loading">Loading live box score…</div>';
   try{
+    if(isSeason){
+      panel.innerHTML=await renderPregameStats(event);
+      panel.dataset.loaded='1';
+      return;
+    }
     let summary=summaryCache.get(eventId);
     if(!summary){summary=await fetchJSON(`${BASE.replace('/scoreboard','/summary')}?event=${encodeURIComponent(eventId)}`);summaryCache.set(eventId,summary);}
-    const event=(window.lastEvents||[]).find(e=>String(e.id)===String(eventId));
     panel.innerHTML=renderSummaryStats(summary,event);
     panel.dataset.loaded='1';
-  }catch(err){panel.innerHTML=`<div class="stats-error">Could not load live stats (${escapeHTML(err.message)}).</div>`;}
+  }catch(err){panel.innerHTML=`<div class="stats-error">Could not load stats (${escapeHTML(err.message)}).</div>`;}
 }
 
 async function getWholeWeekEvents(){
