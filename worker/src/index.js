@@ -36,7 +36,7 @@ function rankOf(c) {
 }
 function teamLabel(c) {
   const r = rankOf(c);
-  return `${r ? `#${r} ` : ''}${schoolName(c?.team || {})}`;
+  return `${r ? `#${r} ` : ''}${c?.team?.abbreviation || schoolName(c?.team || {})}`;
 }
 function gameScores(teams) {
   return teams.map(t => Number(t.score));
@@ -51,14 +51,14 @@ function periodOf(e) { return Number(e.status?.period ?? e.competitions?.[0]?.st
 function clockOf(e) { return e.status?.displayClock || e.competitions?.[0]?.status?.displayClock || ''; }
 function detailOf(e) {
   const type = e.status?.type || {};
-  if (/half/i.test(`${type.name || ''} ${type.description || ''} ${type.detail || ''} ${type.shortDetail || ''}`)) return 'Halftime';
+  if (isHalftime(e)) return 'Halftime';
   const p = periodOf(e), clock = clockOf(e);
   const q = p > 4 ? `${p - 4}OT` : p > 0 ? `Q${p}` : 'Live';
   return `${q}${clock ? ` ${clock}` : ''}`;
 }
 function isHalftime(e) {
   const t = e.status?.type || {};
-  return /half/i.test(`${t.name || ''} ${t.description || ''} ${t.detail || ''} ${t.shortDetail || ''}`);
+  return /half/i.test(`${t.name || ''} ${t.description || ''} ${t.detail || ''} ${t.shortDetail || ''}`) || (periodOf(e) === 2 && /^0{1,2}:00(?:\.0)?$/.test(clockOf(e)));
 }
 function networkOf(comp = {}) {
   for (const b of comp.broadcasts || []) {
@@ -223,18 +223,28 @@ export class NotificationState {
       const network = networkOf(e.competitions?.[0] || {});
       const line = scoreLine(teams);
 
+      // Compare the away/home scores from the previous successful check.
+      // Only identify a scorer when exactly one team's points increased.
+      const scoreIncreases = prev ? teams.filter((t, i) => {
+        const before = Number(prev.scores?.[i]), after = Number(scores[i]);
+        return Number.isFinite(before) && Number.isFinite(after) && after > before;
+      }) : [];
+      const scoredBy = scoreIncreases.length === 1
+        ? (scoreIncreases[0].team?.abbreviation || schoolName(scoreIncreases[0].team || {})) + ' scored'
+        : scoreIncreases.length > 1 ? 'Both teams scored' : 'Score corrected';
+
       const broadcasts = [];
-      if (justUpset) broadcasts.push({ audience: 'all', title: 'UPSET ALERT', body: `${line} · ${detailOf(e)}`, tag: `upset-${eventId}` });
-      if (upsetFinal) broadcasts.push({ audience: 'all', title: 'UPSET', body: `${line} · Final`, tag: `upset-final-${eventId}` });
+      if (justUpset) broadcasts.push({ audience: 'all', title: 'UPSET ALERT', body: line + ' · ' + detailOf(e), tag: 'upset-' + eventId });
+      if (upsetFinal) broadcasts.push({ audience: 'all', title: 'UPSET', body: line + ' · Final', tag: 'upset-final-' + eventId });
 
       if (justFinal) {
-        broadcasts.push({ audience: 'favorite', title: 'Final Score', body: `${line} · Final`, tag: `favorite-final-${eventId}` });
-      } else if (justHalftime) {
-        broadcasts.push({ audience: 'favorite', title: 'Halftime', body: `${line} · Halftime`, tag: `favorite-halftime-${eventId}` });
-      } else if (justKickoff) {
-        broadcasts.push({ audience: 'favorite', title: 'Kickoff', body: `${line}${network ? ` · ${network}` : ''}`, tag: `favorite-kickoff-${eventId}` });
-      } else if (currentState === 'in' && scoreChanged) {
-        broadcasts.push({ audience: 'favorite', title: 'Score Update', body: `${line} · ${detailOf(e)}`, tag: `favorite-score-${eventId}-${scores.join('-')}` });
+        broadcasts.push({ audience: 'favorite', title: 'Final Score', body: line + ' · Final', tag: 'favorite-final-' + eventId });
+      } else {
+        if (justKickoff) broadcasts.push({ audience: 'favorite', title: 'Kickoff', body: line + (network ? ' · ' + network : ''), tag: 'favorite-kickoff-' + eventId });
+        if (currentState === 'in' && scoreChanged && !justKickoff) {
+          broadcasts.push({ audience: 'favorite', title: 'Score Update', body: scoredBy + ' · ' + line + ' · ' + detailOf(e), tag: 'favorite-score-' + eventId + '-' + scores.join('-') });
+        }
+        if (justHalftime) broadcasts.push({ audience: 'favorite', title: 'Halftime', body: line + ' · Halftime', tag: 'favorite-halftime-' + eventId });
       }
 
       for (const note of broadcasts) {
