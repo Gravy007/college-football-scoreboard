@@ -119,6 +119,61 @@ function favoriteGame(e, favorites = []) {
 }
 function notificationUrl(sub) { return sub.appUrl || '/'; }
 
+// A scoreboard poll can bundle several scoring actions. A two-point change is
+// ambiguous without play details (PAT conversion versus defensive safety).
+function scoringDescription(points, play) {
+  const metadata=[
+    play?.scoringType?.name,play?.scoringType?.displayName,play?.scoringType?.abbreviation,
+    play?.type?.name,play?.type?.text,play?.type?.abbreviation,
+    play?.pointAfterAttempt?.text,play?.pointAfterAttempt?.abbreviation,
+    play?.text,play?.shortText
+  ].filter(Boolean).join(' ').toLowerCase();
+  if(points===2){
+    if(/\bsafet(?:y|ies)\b/.test(metadata))return 'Safety';
+    if(/\b(?:two[\s-]?point|2[\s-]?(?:point|pt)|2pt|conversion)\b/.test(metadata))return 'Two-point conversion';
+    return '2-point score';
+  }
+  if(points===1)return 'Extra point';
+  if(points===3)return 'Field goal';
+  if(points===6)return 'Touchdown';
+  if(points===7)return 'Touchdown + XP';
+  if(points===8)return 'Touchdown + 2PT';
+  return points>0 ? points+' points' : 'Score corrected';
+}
+function matchingScoringPlay(summary, scoringTeam, teams) {
+  const plays=Array.isArray(summary?.scoringPlays)?summary.scoringPlays:[];
+  const teamId=String(scoringTeam?.team?.id||scoringTeam?.id||'');
+  const teamScore=Number(scoringTeam?.score);
+  const opponent=teams.find(t=>t!==scoringTeam);
+  const oppositeScore=Number(opponent?.score);
+  const teamKey=scoringTeam.homeAway==='home'?'homeScore':'awayScore';
+  const oppositeKey=scoringTeam.homeAway==='home'?'awayScore':'homeScore';
+  // Prefer the scoring play whose resulting scoreboard exactly matches this poll.
+  for(const play of [...plays].reverse()){
+    const playTeamId=String(play?.team?.id||play?.teamId||'');
+    if(playTeamId&&teamId&&playTeamId!==teamId)continue;
+    const playTeamScore=Number(play?.[teamKey]),playOppositeScore=Number(play?.[oppositeKey]);
+    if(!Number.isFinite(playTeamScore)||playTeamScore!==teamScore)continue;
+    if(Number.isFinite(playOppositeScore)&&Number.isFinite(oppositeScore)&&playOppositeScore!==oppositeScore)continue;
+    return play;
+  }
+  return null;
+}
+async function getScoringPlay(e, scoringTeam, teams) {
+  if(!e?.id)return null;
+  try{
+    const url='https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event='+encodeURIComponent(e.id);
+    const response=await fetch(url,{headers:{'user-agent':'CFB-Scoreboard-Notification-Worker/1.5'}});
+    if(!response.ok)return null;
+    const summary=await response.json();
+    return matchingScoringPlay(summary,scoringTeam,teams);
+  }catch(err){
+    console.warn('Scoring play details unavailable',e.id,String(err));
+    return null;
+  }
+}
+
+
 export class NotificationState {
   constructor(ctx, env) { this.ctx = ctx; this.env = env; }
 
@@ -196,7 +251,7 @@ export class NotificationState {
 
     const today = centralYMD();
     const dates = [addCentralDays(today, -1), today];
-    const responses = await Promise.all(dates.map(d => fetch(`${SCOREBOARD}?groups=80&dates=${d}&limit=500`, { headers: { 'user-agent': 'CFB-Scoreboard-Notification-Worker/1.2' } })));
+    const responses = await Promise.all(dates.map(d => fetch(`${SCOREBOARD}?groups=80&dates=${d}&limit=500`, { headers: { 'user-agent': 'CFB-Scoreboard-Notification-Worker/1.5' } })));
     const data = await Promise.all(responses.map(r => r.ok ? r.json() : { events: [] }));
     const unique = new Map();
     for (const day of data) for (const e of day.events || []) if (e?.id) unique.set(String(e.id), e);
@@ -229,9 +284,17 @@ export class NotificationState {
         const before = Number(prev.scores?.[i]), after = Number(scores[i]);
         return Number.isFinite(before) && Number.isFinite(after) && after > before;
       }) : [];
-      const scoredBy = scoreIncreases.length === 1
-        ? (scoreIncreases[0].team?.abbreviation || schoolName(scoreIncreases[0].team || {})) + ' scored'
-        : scoreIncreases.length > 1 ? 'Both teams scored' : 'Score corrected';
+      const scorer=scoreIncreases.length===1?scoreIncreases[0]:null;
+      const scorerIndex=scorer?teams.indexOf(scorer):-1;
+      const points=scorerIndex>=0?Number(scores[scorerIndex])-Number(prev?.scores?.[scorerIndex]):0;
+      const favoriteSubscribersInterested=subEntries.some(([,sub])=>favoriteGame(e,sub.favorites));
+      // Look up an actual scoring play only when a favorite team's score changes.
+      // Fall back to safe score-difference labels when ESPN play data is missing.
+      const play=scorer&&points>0&&currentState==='in'&&favoriteSubscribersInterested
+        ?await getScoringPlay(e,scorer,teams):null;
+      const scoreAction=scorer
+        ?(scorer.team?.abbreviation||schoolName(scorer.team||{}))+': '+scoringDescription(points,play)
+        :scoreIncreases.length>1?'Both teams scored':'Score corrected';
 
       const broadcasts = [];
       if (justUpset) broadcasts.push({ audience: 'all', title: 'UPSET ALERT', body: line + ' · ' + detailOf(e), tag: 'upset-' + eventId });
@@ -242,7 +305,7 @@ export class NotificationState {
       } else {
         if (justKickoff) broadcasts.push({ audience: 'favorite', title: 'Kickoff', body: line + (network ? ' · ' + network : ''), tag: 'favorite-kickoff-' + eventId });
         if (currentState === 'in' && scoreChanged && !justKickoff) {
-          broadcasts.push({ audience: 'favorite', title: 'Score Update', body: scoredBy + ' · ' + line + ' · ' + detailOf(e), tag: 'favorite-score-' + eventId + '-' + scores.join('-') });
+          broadcasts.push({ audience: 'favorite', title: 'Score Update', body: scoreAction + ' · ' + line + ' · ' + detailOf(e), tag: 'favorite-score-' + eventId + '-' + scores.join('-') });
         }
         if (justHalftime) broadcasts.push({ audience: 'favorite', title: 'Halftime', body: line + ' · Halftime', tag: 'favorite-halftime-' + eventId });
       }
